@@ -1,0 +1,277 @@
+<title>Passwort-Check Simulation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: ein schmaler Arbeitsbogen – Eingabe oben, Befund darunter, Angriffsszenarien als Zeitskala */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --ink: #17212b;
+  --muted: #5a6875;
+  --line: #d3dae1;
+  --accent: #1f5f8b;
+  --bad: #b3261e;
+  --warn: #a15c00;
+  --good: #23704a;
+  --bad-bg: #fbe9e7;
+  --warn-bg: #fdf0dc;
+  --good-bg: #e3f2ea;
+  --track: #e2e7ec;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171d; --surface: #1a232b; --ink: #e6ecf1; --muted: #9aa8b4; --line: #2c3a46;
+    --accent: #6fb1e0; --bad: #ff8a80; --warn: #f0b45c; --good: #6fd19c;
+    --bad-bg: #3a1f1d; --warn-bg: #3a2d17; --good-bg: #17332a; --track: #26323c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171d; --surface: #1a232b; --ink: #e6ecf1; --muted: #9aa8b4; --line: #2c3a46;
+  --accent: #6fb1e0; --bad: #ff8a80; --warn: #f0b45c; --good: #6fd19c;
+  --bad-bg: #3a1f1d; --warn-bg: #3a2d17; --good-bg: #17332a; --track: #26323c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 1.0625rem/1.55 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+main { max-width: 860px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 600 0.78rem/1 var(--f-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+header { display: grid; gap: 10px; }
+.lead { color: var(--muted); max-width: 65ch; }
+.notice {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--warn); background: var(--warn-bg); color: var(--ink);
+  padding: 10px 14px; border-radius: 6px; font-size: 0.97rem;
+}
+.notice strong { color: var(--warn); }
+section { display: grid; gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+
+.field { display: flex; gap: 8px; flex-wrap: wrap; }
+.field input {
+  flex: 1 1 260px; min-width: 0;
+  font: 500 1.25rem/1 var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 2px solid var(--line); border-radius: 6px; padding: 12px 14px;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+button {
+  font: 600 0.95rem/1 var(--f-body); cursor: pointer; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 10px 14px;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.examples span { color: var(--muted); font-size: 0.92rem; margin-right: 4px; }
+.examples button { font-family: var(--f-mono); font-weight: 500; font-size: 0.88rem; padding: 7px 10px; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.fact { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; min-width: 0; }
+.fact dt { font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.fact dd { margin: 2px 0 0; font: 500 1.2rem/1.3 var(--f-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fact dd small { font-size: 0.8rem; color: var(--muted); }
+
+.verdict { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 6px; }
+.verdict .pill { flex: none; font: 600 0.78rem/1 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 9px; border-radius: 999px; color: var(--surface); }
+.verdict.bad { background: var(--bad-bg); } .verdict.bad .pill { background: var(--bad); }
+.verdict.good { background: var(--good-bg); } .verdict.good .pill { background: var(--good); }
+
+.scenarios { display: grid; gap: 14px; }
+.row { display: grid; gap: 6px; }
+.row-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.row-head .name { font-weight: 600; }
+.row-head .rate { color: var(--muted); font-size: 0.88rem; }
+.row-head .time { font: 500 0.98rem/1.3 var(--f-mono); font-variant-numeric: tabular-nums; }
+.row-head .time.bad { color: var(--bad); } .row-head .time.warn { color: var(--warn); } .row-head .time.good { color: var(--good); }
+.bar { position: relative; height: 12px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; transition: width 0.35s ease; }
+.bar i.bad { background: var(--bad); } .bar i.warn { background: var(--warn); } .bar i.good { background: var(--good); }
+.scale { position: relative; height: 1.1em; margin-inline: 0 2.2em; font: 500 0.72rem/1 var(--f-mono); color: var(--muted); }
+.scale span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.scale span:first-child { transform: none; }
+@media (max-width: 520px) { .scale .opt { display: none; } }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.88rem; color: var(--muted); }
+.legend b { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.note { font-size: 0.93rem; color: var(--muted); max-width: 70ch; }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 4px; }
+.rule h3 { margin: 0; font: 600 1rem/1.3 var(--f-display); }
+.rule p { color: var(--muted); font-size: 0.95rem; }
+footer { font-size: 0.85rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">Awareness-Schulung · Informationssicherheit</span>
+    <h1>Wie lange hält mein Passwort?</h1>
+    <p class="lead">Diese Simulation rechnet aus, wie schnell ein Angreifer ein Passwort erraten könnte: erst mit einer Liste bekannter Passwörter, dann durch reines Durchprobieren aller Kombinationen.</p>
+    <div class="notice" role="note"><span aria-hidden="true">⚠</span><p><strong>Bitte kein echtes Passwort eingeben.</strong> Die Berechnung läuft nur in diesem Browser. Nichts wird gespeichert oder übertragen, es finden keine Anmeldeversuche statt.</p></div>
+  </header>
+
+  <section class="panel" aria-labelledby="h-input">
+    <h2 id="h-input">Beispiel-Passwort</h2>
+    <div class="field">
+      <label for="pw" class="visually-hidden" hidden>Beispiel-Passwort</label>
+      <input id="pw" type="password" autocomplete="off" spellcheck="false" value="admin123" aria-label="Beispiel-Passwort">
+      <button id="toggle" type="button" aria-pressed="false">Anzeigen</button>
+    </div>
+    <div class="examples">
+      <span>Beispiele:</span>
+      <button type="button" data-ex="admin123">admin123</button>
+      <button type="button" data-ex="Sommer2026!">Sommer2026!</button>
+      <button type="button" data-ex="Kx7#mQ2p">Kx7#mQ2p</button>
+      <button type="button" data-ex="Tisch-Wolke-Rhein-Kaffee">Tisch-Wolke-Rhein-Kaffee</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-dict">
+    <h2 id="h-dict">1 · Wörterbuch-Angriff</h2>
+    <div id="verdict" class="verdict"></div>
+  </section>
+
+  <section aria-labelledby="h-brute">
+    <h2 id="h-brute">2 · Durchprobieren aller Kombinationen</h2>
+    <div class="panel">
+      <dl class="facts" style="margin:0">
+        <div class="fact"><dt>Länge</dt><dd id="f-len">–</dd></div>
+        <div class="fact"><dt>Zeichenvorrat</dt><dd id="f-set">–</dd></div>
+        <div class="fact"><dt>Kombinationen</dt><dd id="f-comb">–</dd></div>
+      </dl>
+      <p class="note" id="f-set-detail"></p>
+      <div class="scenarios" id="scenarios"></div>
+      <div class="scale" aria-hidden="true"><span style="left:0">1 Sek.</span><span class="opt" style="left:18.2%">1 Std.</span><span style="left:38.4%">1 Jahr</span><span style="left:69.2%">1 Mio. J.</span><span style="left:100%">1 Bio. J.</span></div>
+      <div class="legend">
+        <span><b style="background:var(--bad)"></b>unter 1 Tag</span>
+        <span><b style="background:var(--warn)"></b>bis 100 Jahre</span>
+        <span><b style="background:var(--good)"></b>über 100 Jahre</span>
+      </div>
+      <p class="note">Angegeben ist die durchschnittliche Dauer (die Hälfte aller Kombinationen). Die Rateversuche pro Sekunde sind grobe Größenordnungen für aktuelle Hardware, keine Messwerte. „Offline“ heißt: Der Angreifer hat eine gestohlene Datenbank mit Passwort-Hashes und probiert auf eigener Hardware, ohne Sperre und ohne dass es jemand bemerkt.</p>
+      <p class="note">Bei Passphrasen aus ganzen Wörtern ist die Rechnung zu optimistisch, weil Angreifer auch Wörter kombinieren. Vier bis fünf wirklich zufällig gewählte Wörter bleiben trotzdem sehr stark.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-rules">
+    <h2 id="h-rules">Was daraus folgt</h2>
+    <div class="rules">
+      <div class="rule"><h3>Länge schlägt Sonderzeichen</h3><p>Jedes zusätzliche Zeichen vervielfacht den Aufwand. Eine Passphrase aus 4–5 zufälligen Wörtern ist stärker und leichter zu merken.</p></div>
+      <div class="rule"><h3>Nie wiederverwenden</h3><p>Wird ein Dienst gehackt, probieren Angreifer dasselbe Passwort überall. Ein Passwort-Manager hilft, für jeden Zugang ein eigenes zu haben.</p></div>
+      <div class="rule"><h3>MFA einschalten</h3><p>Mit einem zweiten Faktor reicht ein geknacktes Passwort allein nicht mehr für die Anmeldung.</p></div>
+    </div>
+  </section>
+
+  <footer>Reine Rechen-Demo für Schulungszwecke. Die Liste häufiger Passwörter ist ein kleiner Auszug; echte Angreifer nutzen Listen mit Milliarden Einträgen.</footer>
+</main>
+
+<script>
+(function () {
+  const TOP = new Set([
+    "123456","123456789","12345678","password","passwort","qwertz","qwerty","hallo","hallo123",
+    "admin","admin123","welcome","letmein","iloveyou","sommer","sommer2026","winter","winter2026",
+    "andernach","andernach1","stadt123","fussball","schalke04","master","geheim","test123"
+  ]);
+  const SCEN = [
+    ["Online-Login mit Kontosperre", "ca. 10 Versuche pro Stunde", 10 / 3600],
+    ["Online-Login ohne Sperre", "ca. 100 Versuche pro Sekunde", 100],
+    ["Offline, gut gesicherter Hash (bcrypt), 1 Grafikkarte", "ca. 200.000 pro Sekunde", 2e5],
+    ["Offline, schwacher Hash (MD5/NTLM), 1 Gaming-Grafikkarte", "ca. 100 Milliarden pro Sekunde", 1e11],
+    ["Offline, NTLM, Rechner mit 8 Grafikkarten", "ca. 1 Billion pro Sekunde", 1e12]
+  ];
+  const YEAR = 365.25 * 86400;
+  const MAX_LOG = Math.log10(1e12 * YEAR); // rechtes Ende der Skala
+
+  const $ = (id) => document.getElementById(id);
+  const input = $("pw"), toggle = $("toggle");
+  const de = (n, d = 1) => n.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  function charset(pw) {
+    const parts = [];
+    if (/[a-z]/.test(pw)) parts.push(["Kleinbuchstaben", 26]);
+    if (/[A-Z]/.test(pw)) parts.push(["Großbuchstaben", 26]);
+    if (/[0-9]/.test(pw)) parts.push(["Ziffern", 10]);
+    if (/[äöüÄÖÜß]/.test(pw)) parts.push(["Umlaute", 7]);
+    if (/[^a-zA-Z0-9äöüÄÖÜß]/.test(pw)) parts.push(["Sonderzeichen", 33]);
+    return parts;
+  }
+
+  function timeText(log10s) {
+    if (log10s < 0) return "sofort (unter 1 Sekunde)";
+    const s = Math.pow(10, log10s);
+    if (log10s > Math.log10(1e6 * YEAR)) {
+      const y = log10s - Math.log10(YEAR);
+      return "≈ 10<sup>" + Math.floor(y) + "</sup> Jahre";
+    }
+    const units = [["Jahre", YEAR], ["Tage", 86400], ["Stunden", 3600], ["Minuten", 60], ["Sekunden", 1]];
+    for (const [name, f] of units) if (s >= f) return de(s / f) + " " + name;
+    return "sofort";
+  }
+
+  function level(log10s) {
+    if (log10s < Math.log10(86400)) return "bad";
+    if (log10s < Math.log10(100 * YEAR)) return "warn";
+    return "good";
+  }
+
+  function render() {
+    const pw = input.value;
+    const chars = [...pw];
+    const v = $("verdict");
+    if (!chars.length) {
+      v.className = "verdict"; v.innerHTML = "<p>Bitte ein Beispiel-Passwort eingeben.</p>";
+      ["f-len", "f-set", "f-comb"].forEach((id) => ($(id).textContent = "–"));
+      $("f-set-detail").textContent = ""; $("scenarios").innerHTML = "";
+      return;
+    }
+    const low = pw.toLowerCase();
+    const candidates = [low, low.replace(/[!?.]+$/, ""), low.replace(/[0-9!?.]+$/, "")];
+    const hit = candidates.some((c) => c && TOP.has(c));
+    v.className = "verdict " + (hit ? "bad" : "good");
+    v.innerHTML = hit
+      ? '<span class="pill">Treffer</span><p><strong>Steht in der Liste häufiger Passwörter.</strong> Solche Passwörter und ihre üblichen Varianten (angehängte Jahreszahl, Ausrufezeichen) probiert ein Angreifer zuerst. Geknackt in Sekundenbruchteilen, egal was die Rechnung unten sagt.</p>'
+      : '<span class="pill">Kein Treffer</span><p>Nicht in der kleinen Demo-Liste. Echte Listen sind millionenfach größer und enthalten auch Namen, Orte, Vereine und Tastaturmuster.</p>';
+
+    const parts = charset(pw);
+    const n = parts.reduce((a, p) => a + p[1], 0) || 1;
+    const logComb = chars.length * Math.log10(n);
+    $("f-len").innerHTML = chars.length + " <small>Zeichen</small>";
+    $("f-set").innerHTML = n + " <small>Zeichen</small>";
+    const exp = Math.floor(logComb), mant = Math.pow(10, logComb - exp);
+    $("f-comb").innerHTML = logComb < 15 ? Math.round(Math.pow(10, logComb)).toLocaleString("de-DE") : de(mant) + " × 10<sup>" + exp + "</sup>";
+    $("f-set-detail").textContent = "Erkannt: " + parts.map((p) => p[0] + " (" + p[1] + ")").join(" + ") + ". Rechnung: " + n + " hoch " + chars.length + ".";
+
+    $("scenarios").innerHTML = SCEN.map(([name, rateText, rate]) => {
+      const lt = logComb - Math.log10(2) - Math.log10(rate);
+      const lv = level(lt);
+      const w = Math.max(1.5, Math.min(100, (Math.max(lt, 0) / MAX_LOG) * 100));
+      return '<div class="row"><div class="row-head"><span><span class="name">' + name + '</span><br><span class="rate">' + rateText +
+        '</span></span><span class="time ' + lv + '">' + timeText(lt) + '</span></div><div class="bar"><i class="' + lv + '" style="width:' + w.toFixed(1) + '%"></i></div></div>';
+    }).join("");
+  }
+
+  input.addEventListener("input", render);
+  toggle.addEventListener("click", () => {
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    toggle.textContent = show ? "Verbergen" : "Anzeigen";
+    toggle.setAttribute("aria-pressed", String(show));
+  });
+  document.querySelectorAll("[data-ex]").forEach((b) =>
+    b.addEventListener("click", () => { input.value = b.dataset.ex; render(); })
+  );
+  render();
+})();
+</script>

@@ -22,7 +22,7 @@ import string
 TOP_PASSWOERTER = {
     "123456", "123456789", "12345678", "password", "passwort", "qwertz",
     "qwerty", "hallo", "hallo123", "admin", "admin123", "welcome", "letmein",
-    "iloveyou", "sommer2026", "winter2026", "andernach", "andernach1",
+    "iloveyou", "sommer", "sommer2026", "winter", "winter2026", "andernach", "andernach1",
     "stadt123", "fussball", "schalke04", "master", "geheim", "test123",
 }
 
@@ -83,8 +83,9 @@ def main() -> None:
         return
 
     print("\n--- 1) Wörterbuch-Angriff ---")
-    basis = pw.lower().rstrip("0123456789!?.")
-    if pw.lower() in TOP_PASSWOERTER or basis in TOP_PASSWOERTER:
+    klein = pw.lower()
+    kandidaten = {klein, klein.rstrip("!?."), klein.rstrip("0123456789!?.")}
+    if kandidaten & TOP_PASSWOERTER:
         print("⚠  Treffer in der Liste häufiger Passwörter!")
         print("   Ein Angreifer probiert solche Passwörter ZUERST –")
         print("   geknackt in Sekundenbruchteilen, egal wie lang.")
